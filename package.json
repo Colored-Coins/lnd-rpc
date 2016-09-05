@@ -1,0 +1,11 @@
+{
+  "name": "lnrpc",
+  "version": "0.0.1",
+  "description": "lnd rpc client",
+  "main": "index.js",
+  "author": "Nadav Ivgi",
+  "license": "https://github.com/Colu-platform/colu-nodejs/blob/master/LICENSE",
+  "peerDependencies": {
+    "grpc": "^1.0.0"
+  }
+}

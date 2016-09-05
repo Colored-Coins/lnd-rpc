@@ -1,0 +1,230 @@
+syntax = "proto3";
+
+package lnrpc;
+
+service Lightning {
+    rpc WalletBalance(WalletBalanceRequest) returns (WalletBalanceResponse);
+    rpc SendMany(SendManyRequest) returns (SendManyResponse);
+    rpc SendCoins(SendCoinsRequest) returns (SendCoinsResponse);
+    rpc NewAddress(NewAddressRequest) returns (NewAddressResponse);
+
+    rpc ConnectPeer(ConnectPeerRequest) returns (ConnectPeerResponse);
+    rpc ListPeers(ListPeersRequest) returns (ListPeersResponse);
+    rpc GetInfo(GetInfoRequest) returns (GetInfoResponse);
+
+    rpc OpenChannel(OpenChannelRequest) returns (stream OpenStatusUpdate);
+    rpc CloseChannel(CloseChannelRequest) returns (stream CloseStatusUpdate);
+    rpc PendingChannels(PendingChannelRequest) returns (PendingChannelResponse);
+
+    rpc SendPayment(stream SendRequest) returns (stream SendResponse);
+    rpc ShowRoutingTable(ShowRoutingTableRequest) returns (ShowRoutingTableResponse);
+}
+
+message SendRequest {
+    bytes dest = 1;
+    int64 amt = 2;
+    bytes payment_hash = 3;
+
+    bool fast_send = 4;
+}
+message SendResponse{
+    // TODO(roasbeef): info about route? stats?
+}
+
+message ChannelPoint {
+    bytes funding_txid = 1;
+    uint32 output_index = 2;
+}
+
+message LightningAddress {
+    string pubKeyHash = 1;
+    string host = 2;
+}
+
+message SendManyRequest {
+    map<string, int64> AddrToAmount = 1;
+}
+message SendManyResponse {
+    string txid = 1;
+}
+
+message SendCoinsRequest {
+    string addr = 1;
+    int64 amount = 2;
+}
+message SendCoinsResponse {
+    string txid = 1;
+}
+
+message NewAddressRequest {
+    enum AddressType {
+        WITNESS_PUBKEY_HASH = 0;
+        NESTED_PUBKEY_HASH = 1;
+        PUBKEY_HASH = 2;
+    }
+
+    AddressType type = 1;
+}
+message NewAddressResponse {
+    string address = 1;
+}
+
+message ConnectPeerRequest {
+    LightningAddress addr = 1;
+}
+message ConnectPeerResponse {
+    int32 peer_id = 1;
+}
+
+message HTLC {
+    int64 id = 1;
+
+    int64 amount = 2;
+
+    bytes hash_lock = 3;
+
+    bool to_us = 4;
+}
+
+message ActiveChannel {
+    // TODO(roasbeef): make channel points a string everywhere in rpc?
+    string remote_id = 1;
+    string channel_point = 2;
+
+    int64 capacity = 3;
+    int64 local_balance = 4;
+    int64 remote_balance = 5;
+
+    int64 unsettled_belance = 6;
+    repeated HTLC pending_htlcs = 7;
+
+    uint64 num_updates = 8;
+    // TODO(roasbeef): other stuffs
+}
+
+message Peer {
+    string lightning_id = 1;
+    int32 peer_id = 2;
+    string address = 3;
+
+    uint64 bytes_sent = 4;
+    uint64 bytes_recv = 5;
+
+    int64 sat_sent = 6;
+    int64 sat_recv = 7;
+
+    bool inbound = 8;
+
+    // TODO(roasbeef): add pending channels
+    repeated ActiveChannel channels = 9;
+}
+
+message ListPeersRequest {}
+message ListPeersResponse {
+    repeated Peer peers = 1;
+}
+
+message GetInfoRequest{}
+message GetInfoResponse {
+    string lightning_id = 1;
+    string identity_address = 2;
+
+    uint32 num_pending_channels = 3;
+    uint32 num_active_channels = 4;
+
+    uint32 num_peers = 5;
+}
+
+message ConfirmationUpdate {
+    bytes block_sha = 1;
+    int32 block_height = 2;
+
+    uint32 num_confs_left = 3;
+}
+
+message ChannelOpenUpdate {
+   ChannelPoint channel_point = 1;
+}
+
+message ChannelCloseUpdate {
+    bytes closing_txid = 1;
+
+    bool success = 2;
+}
+
+message CloseChannelRequest {
+    ChannelPoint channel_point = 1;
+    int64 time_limit = 2;
+    bool allow_force_close = 3;
+}
+message CloseStatusUpdate {
+    oneof update {
+        PendingUpdate close_pending = 1;
+        ConfirmationUpdate confirmation = 2;
+        ChannelCloseUpdate chan_close = 3;
+    }
+}
+
+message PendingUpdate {
+    bytes txid = 1;
+}
+
+message OpenChannelRequest {
+    int32 target_peer_id = 1;
+    LightningAddress target_node = 2;
+
+    int64 local_funding_amount = 3;
+    int64 remote_funding_amount = 4;
+
+    int64 commission_size = 5;
+
+    uint32 num_confs = 6;
+}
+message OpenStatusUpdate {
+    oneof update {
+        PendingUpdate chan_pending = 1;
+        ConfirmationUpdate confirmation = 2;
+        ChannelOpenUpdate chan_open = 3;
+    }
+}
+
+enum ChannelStatus {
+    ALL = 0;
+    OPENING = 1;
+    CLOSING = 2;
+}
+message PendingChannelRequest {
+    ChannelStatus status = 1;
+}
+message PendingChannelResponse {
+    message PendingChannel {
+        int32 peer_id = 1;
+
+        string lightning_id = 2;
+        string channel_point = 3;
+
+        int64 capacity = 4;
+        int64 local_balance = 5;
+        int64 remote_balance = 6;
+
+        string closing_txid = 7;
+
+        ChannelStatus status = 8;
+    }
+
+    repeated PendingChannel pending_channels = 1;
+}
+
+message WalletBalanceRequest {
+    bool witness_only = 1;
+}
+message WalletBalanceResponse {
+    double balance = 1;
+}
+
+message ShowRoutingTableRequest {
+}
+
+message ShowRoutingTableResponse {
+    string rt = 1;
+}
