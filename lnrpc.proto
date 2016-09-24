@@ -19,6 +19,11 @@ service Lightning {
     rpc PendingChannels(PendingChannelRequest) returns (PendingChannelResponse);
 
     rpc SendPayment(stream SendRequest) returns (stream SendResponse);
+
+    rpc AddInvoice(Invoice) returns (AddInvoiceResponse);
+    rpc LookupInvoice(PaymentHash) returns (Invoice);
+    rpc ListInvoices(ListInvoiceRequest) returns (ListInvoiceResponse);
+
     rpc ShowRoutingTable(ShowRoutingTableRequest) returns (ShowRoutingTableResponse);
 }
 
@@ -130,11 +135,12 @@ message GetInfoRequest{}
 message GetInfoResponse {
     string lightning_id = 1;
     string identity_address = 2;
+    string identity_pubkey = 3;
 
-    uint32 num_pending_channels = 3;
-    uint32 num_active_channels = 4;
+    uint32 num_pending_channels = 4;
+    uint32 num_active_channels = 5;
 
-    uint32 num_peers = 5;
+    uint32 num_peers = 6;
 }
 
 message ConfirmationUpdate {
@@ -243,4 +249,26 @@ message ShowRoutingTableRequest {
 
 message ShowRoutingTableResponse {
     repeated RoutingTableLink channels = 1;
+}
+
+message Invoice {
+    string memo = 1;
+    bytes receipt = 2;
+
+    bytes r_preimage = 3;
+    bytes r_hash = 4;
+
+    int64 value = 5;
+}
+message AddInvoiceResponse {
+    bytes r_hash = 1;
+}
+message PaymentHash {
+    bytes r_hash = 1;
+}
+message ListInvoiceRequest {
+    bool pending_only = 1;
+}
+message ListInvoiceResponse {
+    repeated Invoice invoices = 1;
 }
